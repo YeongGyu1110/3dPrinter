@@ -1,0 +1,578 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D프린터운용기능사 실전 모의고사</title>
+    <style>
+        /* CSS 변수 설정 */
+        :root {
+            --primary-color: #4F46E5;
+            --primary-hover: #4338CA;
+            --bg-color: #F3F4F6;
+            --card-bg: #FFFFFF;
+            --text-main: #1F2937;
+            --text-muted: #6B7280;
+            --correct-color: #10B981;
+            --correct-bg: #D1FAE5;
+            --wrong-color: #EF4444;
+            --wrong-bg: #FEE2E2;
+            --border-color: #E5E7EB;
+        }
+
+        /* 기본 리셋 및 폰트 */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Pretendard', 'Noto Sans KR', sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        /* 공통 컨테이너 */
+        .container {
+            width: 100%;
+            max-width: 700px;
+            background-color: var(--card-bg);
+            border-radius: 16px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .screen {
+            padding: 40px;
+            display: none;
+        }
+
+        .screen.active {
+            display: block;
+            animation: fadeIn 0.4s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        h1 {
+            font-size: 1.5rem;
+            color: var(--primary-color);
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        h2 {
+            font-size: 1.25rem;
+            margin-bottom: 15px;
+            line-height: 1.5;
+        }
+
+        .btn {
+            display: block;
+            width: 100%;
+            padding: 14px;
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .btn:hover {
+            background-color: var(--primary-hover);
+        }
+
+        .btn:disabled {
+            background-color: var(--text-muted);
+            cursor: not-allowed;
+        }
+
+        /* --- 상태 화면 (로딩, 에러) --- */
+        .status-content {
+            text-align: center;
+            padding: 40px 20px;
+        }
+
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 5px solid #EEF2FF;
+            border-top: 5px solid var(--primary-color);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        .error-box {
+            background-color: var(--wrong-bg);
+            border: 1px solid var(--wrong-color);
+            color: var(--wrong-color);
+            padding: 20px;
+            border-radius: 8px;
+            margin-top: 20px;
+            font-weight: 600;
+            line-height: 1.6;
+        }
+
+        /* --- 퀴즈 화면 --- */
+        .quiz-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .progress {
+            font-weight: 600;
+            color: var(--primary-color);
+        }
+
+        .toggle-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 0.9rem;
+            color: var(--text-muted);
+        }
+
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 44px;
+            height: 24px;
+        }
+
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: .4s;
+            border-radius: 24px;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 18px;
+            width: 18px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+
+        input:checked+.slider {
+            background-color: var(--primary-color);
+        }
+
+        input:checked+.slider:before {
+            transform: translateX(20px);
+        }
+
+        .choices-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .choice-btn {
+            width: 100%;
+            padding: 16px;
+            background-color: white;
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            text-align: left;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            color: var(--text-main);
+        }
+
+        .choice-btn:not(:disabled):hover {
+            border-color: var(--primary-color);
+            background-color: #EEF2FF;
+        }
+
+        .choice-btn.correct {
+            border-color: var(--correct-color);
+            background-color: var(--correct-bg);
+            color: #065F46;
+            font-weight: bold;
+        }
+
+        .choice-btn.wrong {
+            border-color: var(--wrong-color);
+            background-color: var(--wrong-bg);
+            color: #991B1B;
+            text-decoration: line-through;
+        }
+
+        .explanation-box {
+            background-color: #F8FAFC;
+            border-left: 4px solid var(--primary-color);
+            padding: 15px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+            font-size: 0.95rem;
+            line-height: 1.5;
+            display: none;
+        }
+
+        .action-area {
+            display: none;
+            margin-top: 20px;
+        }
+
+        /* --- 결과 화면 --- */
+        .result-content {
+            text-align: center;
+            padding: 20px 0;
+        }
+
+        .score-circle {
+            width: 150px;
+            height: 150px;
+            border-radius: 50%;
+            background: #EEF2FF;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: 0 auto 30px;
+            border: 8px solid var(--primary-color);
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: var(--primary-color);
+        }
+
+        @media (max-width: 480px) {
+            .screen {
+                padding: 25px 20px;
+            }
+
+            h1 {
+                font-size: 1.3rem;
+            }
+
+            h2 {
+                font-size: 1.1rem;
+            }
+
+            .choice-btn {
+                padding: 12px;
+                font-size: 0.95rem;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container">
+
+        <!-- 1. 로딩 화면 -->
+        <div id="screen-loading" class="screen active">
+            <div class="status-content">
+                <div class="spinner"></div>
+                <h2 style="color: var(--text-muted);">문제 데이터를 불러오는 중입니다...</h2>
+            </div>
+        </div>
+
+        <!-- 2. 에러 화면 -->
+        <div id="screen-error" class="screen">
+            <div class="status-content">
+                <h1>⚠️ 오류 발생</h1>
+                <div class="error-box" id="errorText">
+                    data.json 파일을 불러오지 못했습니다.<br><br>
+                    VS Code의 Live Server 같은 로컬 웹 서버 환경에서 실행해 주세요.
+                </div>
+            </div>
+        </div>
+
+        <!-- 3. 퀴즈 화면 -->
+        <div id="screen-quiz" class="screen">
+            <div class="quiz-header">
+                <div class="progress" id="progressText">문제 1 / 10</div>
+                <div class="toggle-wrapper">
+                    해설 같이 보기
+                    <label class="switch">
+                        <input type="checkbox" id="toggleExplanation">
+                        <span class="slider"></span>
+                    </label>
+                </div>
+            </div>
+
+            <h2 id="questionText">문제 내용이 여기에 표시됩니다.</h2>
+
+            <div class="choices-grid" id="choicesBox"></div>
+
+            <div id="explanationBox" class="explanation-box">
+                <strong>💡 해설:</strong> <span id="explanationText"></span>
+            </div>
+
+            <div id="actionArea" class="action-area">
+                <button class="btn" id="nextBtn">다음 문제</button>
+            </div>
+        </div>
+
+        <!-- 4. 결과 화면 -->
+        <div id="screen-result" class="screen">
+            <h1>🎉 테스트 완료!</h1>
+            <div class="result-content">
+                <div class="score-circle" id="finalScore">0점</div>
+                <p style="margin-bottom:30px; font-size:1.1rem; color:var(--text-muted);" id="resultText">수고하셨습니다!</p>
+                <button class="btn" id="restartBtn">처음부터 다시 풀기 🔄</button>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        // 상태 관리 변수
+        let quizData = [];
+        let currentIndex = 0;
+        let score = 0;
+        let isAnswered = false;
+
+        // DOM 요소 캐싱
+        const screenLoading = document.getElementById('screen-loading');
+        const screenError = document.getElementById('screen-error');
+        const screenQuiz = document.getElementById('screen-quiz');
+        const screenResult = document.getElementById('screen-result');
+
+        const progressText = document.getElementById('progressText');
+        const questionText = document.getElementById('questionText');
+        const choicesBox = document.getElementById('choicesBox');
+        const toggleExplanation = document.getElementById('toggleExplanation');
+        const explanationBox = document.getElementById('explanationBox');
+        const explanationText = document.getElementById('explanationText');
+        const actionArea = document.getElementById('actionArea');
+        const nextBtn = document.getElementById('nextBtn');
+
+        const finalScore = document.getElementById('finalScore');
+        const resultText = document.getElementById('resultText');
+        const restartBtn = document.getElementById('restartBtn');
+
+        // 배열 무작위 섞기 함수 (Fisher-Yates 알고리즘)
+        function shuffleArray(array) {
+            const arr = [...array];
+            for (let i = arr.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [arr[i], arr[j]] = [arr[j], arr[i]];
+            }
+            return arr;
+        }
+
+        // 화면 전환 함수
+        function switchScreen(screenElement) {
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+            screenElement.classList.add('active');
+        }
+
+        // 1. 데이터 Fetch (자동 실행)
+        async function initQuiz() {
+            try {
+                const response = await fetch('data.json');
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const data = await response.json();
+
+                if (!Array.isArray(data) || data.length === 0) {
+                    throw new Error("데이터 배열이 비어있거나 형식이 올바르지 않습니다.");
+                }
+
+                // [로직 1] 불러온 원본 문제 배열을 무작위로 섞음
+                quizData = shuffleArray(data);
+                startQuiz();
+
+            } catch (error) {
+                console.error("데이터 로드 실패:", error);
+                switchScreen(screenError);
+            }
+        }
+
+        // 2. 퀴즈 초기화 및 시작
+        function startQuiz() {
+            currentIndex = 0;
+            score = 0;
+            switchScreen(screenQuiz);
+            loadQuestion();
+        }
+
+        // 3. 문제 로드 함수
+        function loadQuestion() {
+            isAnswered = false;
+            actionArea.style.display = 'none';
+
+            // [로직 3] 해설 표시는 오직 토글 스위치 상태에만 동기화 (다음 문제로 넘어가도 유지됨)
+            explanationBox.style.display = toggleExplanation.checked ? 'block' : 'none';
+
+            const qData = quizData[currentIndex];
+
+            // UI 텍스트 업데이트
+            progressText.textContent = `문제 ${currentIndex + 1} / ${quizData.length}`;
+            questionText.textContent = qData.question;
+            explanationText.textContent = qData.explanation;
+
+            // [로직 2] 보기 섞기 (정답 매핑 로직)
+            // 1. 원래 배열(텍스트)과 정답 여부(boolean)를 객체 형태로 묶음
+            const mappedChoices = qData.choices.map((text, idx) => ({
+                text: text,
+                isCorrect: (idx === qData.answer - 1) // answer가 1-based이므로 -1
+            }));
+
+            // 2. 묶은 객체 배열을 무작위로 섞음
+            const shuffledChoices = shuffleArray(mappedChoices);
+
+            // 3. 섞인 배열을 기준으로 화면에 버튼 렌더링
+            choicesBox.innerHTML = '';
+            shuffledChoices.forEach((choice, index) => {
+                const btn = document.createElement('button');
+                btn.className = 'choice-btn';
+                btn.textContent = `${index + 1}. ${choice.text}`;
+
+                // 채점을 위해 이 버튼이 정답인지 여부를 DOM dataset에 저장
+                btn.dataset.correct = choice.isCorrect;
+
+                btn.addEventListener('click', () => handleAnswer(btn));
+                choicesBox.appendChild(btn);
+            });
+
+            // 마지막 문제면 버튼 텍스트 변경
+            if (currentIndex === quizData.length - 1) {
+                nextBtn.textContent = "결과 보기 📊";
+            } else {
+                nextBtn.textContent = "다음 문제 ➡️";
+            }
+        }
+
+        // 4. 정답 처리 로직
+        function handleAnswer(selectedBtn) {
+            if (isAnswered) return;
+            isAnswered = true;
+
+            const allBtns = choicesBox.querySelectorAll('.choice-btn');
+            allBtns.forEach(btn => btn.disabled = true);
+
+            // dataset에 저장해둔 정답 여부를 확인 (문자열 'true'로 저장됨)
+            const isCorrect = selectedBtn.dataset.correct === 'true';
+
+            if (isCorrect) {
+                selectedBtn.classList.add('correct');
+                score++;
+            } else {
+                // 오답 선택 시
+                selectedBtn.classList.add('wrong');
+                // 전체 버튼 중 정답인 버튼을 찾아 초록색으로 하이라이트
+                allBtns.forEach(btn => {
+                    if (btn.dataset.correct === 'true') {
+                        btn.classList.add('correct');
+                    }
+                });
+            }
+
+            actionArea.style.display = 'block';
+        }
+
+        // [로직 3] 토글 스위치 이벤트 리스너 추가
+        // 스위치를 누르는 즉시 해설을 보이거나 숨김
+        toggleExplanation.addEventListener('change', (e) => {
+            // 퀴즈 화면일 때만 작동하도록 처리
+            if (screenQuiz.classList.contains('active')) {
+                explanationBox.style.display = e.target.checked ? 'block' : 'none';
+            }
+        });
+
+        // 5. 다음 문제 이동
+        nextBtn.addEventListener('click', () => {
+            if (currentIndex < quizData.length - 1) {
+                currentIndex++;
+                loadQuestion();
+            } else {
+                showResult();
+            }
+        });
+
+        // 6. 결과 화면 표시
+        function showResult() {
+            switchScreen(screenResult);
+
+            const pointPerQuestion = 100 / quizData.length;
+            const finalScoreValue = Math.round(score * pointPerQuestion);
+
+            finalScore.textContent = `${finalScoreValue}점`;
+            resultText.textContent = `총 ${quizData.length}문제 중 ${score}문제를 맞히셨습니다!`;
+
+            if (finalScoreValue >= 60) {
+                finalScore.style.borderColor = "var(--correct-color)";
+                finalScore.style.color = "var(--correct-color)";
+            } else {
+                finalScore.style.borderColor = "var(--wrong-color)";
+                finalScore.style.color = "var(--wrong-color)";
+            }
+        }
+
+        // 7. 처음부터 다시 풀기
+        restartBtn.addEventListener('click', () => {
+            finalScore.style.borderColor = "var(--primary-color)";
+            finalScore.style.color = "var(--primary-color)";
+
+            // 다시 풀 때는 문제 순서를 '새로' 무작위로 섞음
+            quizData = shuffleArray(quizData);
+            startQuiz();
+        });
+
+        // 스크립트 로드 완료 시 즉시 실행
+        window.addEventListener('DOMContentLoaded', initQuiz);
+
+    </script>
+</body>
+
+</html>
