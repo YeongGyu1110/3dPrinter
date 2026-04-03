@@ -275,18 +275,33 @@
         }
 
         .score-circle {
-            width: 150px;
-            height: 150px;
+            width: 180px;
+            height: 180px;
             border-radius: 50%;
             background: #EEF2FF;
             display: flex;
             justify-content: center;
             align-items: center;
-            margin: 0 auto 30px;
+            margin: 0 auto 25px;
             border: 8px solid var(--primary-color);
-            font-size: 2.5rem;
+            font-size: 2.2rem;
             font-weight: bold;
             color: var(--primary-color);
+            letter-spacing: 2px;
+        }
+
+        .pass-text {
+            color: var(--correct-color);
+            font-size: 1.5rem;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        .fail-text {
+            color: var(--wrong-color);
+            font-size: 1.5rem;
+            font-weight: bold;
+            margin-bottom: 10px;
         }
 
         @media (max-width: 480px) {
@@ -305,6 +320,12 @@
             .choice-btn {
                 padding: 12px;
                 font-size: 0.95rem;
+            }
+
+            .score-circle {
+                width: 150px;
+                height: 150px;
+                font-size: 1.8rem;
             }
         }
     </style>
@@ -336,7 +357,7 @@
         <!-- 3. 퀴즈 화면 -->
         <div id="screen-quiz" class="screen">
             <div class="quiz-header">
-                <div class="progress" id="progressText">문제 1 / 10</div>
+                <div class="progress" id="progressText">문제 1 / 60</div>
                 <div class="toggle-wrapper">
                     해설 같이 보기
                     <label class="switch">
@@ -361,11 +382,17 @@
 
         <!-- 4. 결과 화면 -->
         <div id="screen-result" class="screen">
-            <h1>🎉 테스트 완료!</h1>
+            <h1>📊 모의고사 최종 결과</h1>
             <div class="result-content">
-                <div class="score-circle" id="finalScore">0점</div>
-                <p style="margin-bottom:30px; font-size:1.1rem; color:var(--text-muted);" id="resultText">수고하셨습니다!</p>
-                <button class="btn" id="restartBtn">처음부터 다시 풀기 🔄</button>
+                <div class="score-circle" id="finalScore">0 / 60</div>
+
+                <!-- 합격 / 불합격 판정 텍스트 -->
+                <div id="passFailText" class="pass-text"></div>
+
+                <p style="margin-bottom:30px; font-size:1rem; color:var(--text-muted);" id="resultText"></p>
+
+                <!-- 다시 풀기 버튼 -->
+                <button class="btn" id="restartBtn">새로운 모의고사 시작 🔄</button>
             </div>
         </div>
 
@@ -373,10 +400,11 @@
 
     <script>
         // 상태 관리 변수
-        let quizData = [];
-        let currentIndex = 0;
-        let score = 0;
-        let isAnswered = false;
+        let allQuizData = [];       // JSON에서 불러온 전체 원본 데이터
+        let currentQuizData = [];   // 현재 모의고사 세션에 사용될 60문제
+        let currentIndex = 0;       // 현재 풀고 있는 문제 인덱스
+        let score = 0;              // 맞춘 문제 개수
+        let isAnswered = false;     // 현재 문제 답안 선택 여부
 
         // DOM 요소 캐싱
         const screenLoading = document.getElementById('screen-loading');
@@ -394,6 +422,7 @@
         const nextBtn = document.getElementById('nextBtn');
 
         const finalScore = document.getElementById('finalScore');
+        const passFailText = document.getElementById('passFailText');
         const resultText = document.getElementById('resultText');
         const restartBtn = document.getElementById('restartBtn');
 
@@ -413,7 +442,7 @@
             screenElement.classList.add('active');
         }
 
-        // 1. 데이터 Fetch (자동 실행)
+        // 1. 데이터 Fetch (최초 1회만 실행)
         async function initQuiz() {
             try {
                 const response = await fetch('data.json');
@@ -428,9 +457,9 @@
                     throw new Error("데이터 배열이 비어있거나 형식이 올바르지 않습니다.");
                 }
 
-                // [로직 1] 불러온 원본 문제 배열을 무작위로 섞음
-                quizData = shuffleArray(data);
-                startQuiz();
+                // 전체 데이터를 저장해두고, 새로운 모의고사 시작
+                allQuizData = data;
+                startNewMockTest();
 
             } catch (error) {
                 console.error("데이터 로드 실패:", error);
@@ -438,10 +467,15 @@
             }
         }
 
-        // 2. 퀴즈 초기화 및 시작
-        function startQuiz() {
+        // 2. 새로운 모의고사 세트 생성 및 시작
+        function startNewMockTest() {
+            // 전체 데이터를 섞은 뒤, 최대 60개만 잘라내어 현재 세트로 지정
+            const shuffledAll = shuffleArray(allQuizData);
+            currentQuizData = shuffledAll.slice(0, 60);
+
             currentIndex = 0;
             score = 0;
+
             switchScreen(screenQuiz);
             loadQuestion();
         }
@@ -451,34 +485,32 @@
             isAnswered = false;
             actionArea.style.display = 'none';
 
-            // [로직 3] 해설 표시는 오직 토글 스위치 상태에만 동기화 (다음 문제로 넘어가도 유지됨)
+            // 해설 표시는 오직 토글 스위치 상태에만 동기화
             explanationBox.style.display = toggleExplanation.checked ? 'block' : 'none';
 
-            const qData = quizData[currentIndex];
+            const qData = currentQuizData[currentIndex];
 
             // UI 텍스트 업데이트
-            progressText.textContent = `문제 ${currentIndex + 1} / ${quizData.length}`;
+            progressText.textContent = `문제 ${currentIndex + 1} / ${currentQuizData.length}`;
             questionText.textContent = qData.question;
             explanationText.textContent = qData.explanation;
 
-            // [로직 2] 보기 섞기 (정답 매핑 로직)
-            // 1. 원래 배열(텍스트)과 정답 여부(boolean)를 객체 형태로 묶음
+            // 보기 섞기 (정답 매핑 로직)
             const mappedChoices = qData.choices.map((text, idx) => ({
                 text: text,
-                isCorrect: (idx === qData.answer - 1) // answer가 1-based이므로 -1
+                isCorrect: (idx === qData.answer - 1)
             }));
 
-            // 2. 묶은 객체 배열을 무작위로 섞음
             const shuffledChoices = shuffleArray(mappedChoices);
 
-            // 3. 섞인 배열을 기준으로 화면에 버튼 렌더링
+            // 보기 버튼 렌더링
             choicesBox.innerHTML = '';
             shuffledChoices.forEach((choice, index) => {
                 const btn = document.createElement('button');
                 btn.className = 'choice-btn';
                 btn.textContent = `${index + 1}. ${choice.text}`;
 
-                // 채점을 위해 이 버튼이 정답인지 여부를 DOM dataset에 저장
+                // 채점을 위해 정답 여부 저장
                 btn.dataset.correct = choice.isCorrect;
 
                 btn.addEventListener('click', () => handleAnswer(btn));
@@ -486,7 +518,7 @@
             });
 
             // 마지막 문제면 버튼 텍스트 변경
-            if (currentIndex === quizData.length - 1) {
+            if (currentIndex === currentQuizData.length - 1) {
                 nextBtn.textContent = "결과 보기 📊";
             } else {
                 nextBtn.textContent = "다음 문제 ➡️";
@@ -501,16 +533,14 @@
             const allBtns = choicesBox.querySelectorAll('.choice-btn');
             allBtns.forEach(btn => btn.disabled = true);
 
-            // dataset에 저장해둔 정답 여부를 확인 (문자열 'true'로 저장됨)
             const isCorrect = selectedBtn.dataset.correct === 'true';
 
             if (isCorrect) {
                 selectedBtn.classList.add('correct');
-                score++;
+                score++; // 정답 카운트 누적
             } else {
-                // 오답 선택 시
                 selectedBtn.classList.add('wrong');
-                // 전체 버튼 중 정답인 버튼을 찾아 초록색으로 하이라이트
+                // 오답 시 정답인 버튼 하이라이트
                 allBtns.forEach(btn => {
                     if (btn.dataset.correct === 'true') {
                         btn.classList.add('correct');
@@ -521,10 +551,8 @@
             actionArea.style.display = 'block';
         }
 
-        // [로직 3] 토글 스위치 이벤트 리스너 추가
-        // 스위치를 누르는 즉시 해설을 보이거나 숨김
+        // 해설 토글 스위치 이벤트 리스너
         toggleExplanation.addEventListener('change', (e) => {
-            // 퀴즈 화면일 때만 작동하도록 처리
             if (screenQuiz.classList.contains('active')) {
                 explanationBox.style.display = e.target.checked ? 'block' : 'none';
             }
@@ -532,7 +560,7 @@
 
         // 5. 다음 문제 이동
         nextBtn.addEventListener('click', () => {
-            if (currentIndex < quizData.length - 1) {
+            if (currentIndex < currentQuizData.length - 1) {
                 currentIndex++;
                 loadQuestion();
             } else {
@@ -540,33 +568,43 @@
             }
         });
 
-        // 6. 결과 화면 표시
+        // 6. 결과 화면 표시 및 합격 여부 판정
         function showResult() {
             switchScreen(screenResult);
 
-            const pointPerQuestion = 100 / quizData.length;
-            const finalScoreValue = Math.round(score * pointPerQuestion);
+            const totalQuestions = currentQuizData.length;
+            // 합격 기준: 60문제 기준 36개 (60% 이상). 
+            // 만약 데이터가 60개 미만일 경우를 대비해 총 문제수의 60% 올림값을 기준으로 설정.
+            const passThreshold = Math.ceil(totalQuestions * 0.6);
 
-            finalScore.textContent = `${finalScoreValue}점`;
-            resultText.textContent = `총 ${quizData.length}문제 중 ${score}문제를 맞히셨습니다!`;
+            // 원형 UI에 점수 표시
+            finalScore.textContent = `${score} / ${totalQuestions}`;
+            resultText.textContent = `총 ${totalQuestions}문제 중 ${score}문제를 맞히셨습니다. (합격 기준: ${passThreshold}개 이상)`;
 
-            if (finalScoreValue >= 60) {
+            // 판정 로직
+            if (score >= passThreshold) {
                 finalScore.style.borderColor = "var(--correct-color)";
                 finalScore.style.color = "var(--correct-color)";
+
+                passFailText.textContent = "🎉 합격입니다!";
+                passFailText.className = "pass-text";
             } else {
                 finalScore.style.borderColor = "var(--wrong-color)";
                 finalScore.style.color = "var(--wrong-color)";
+
+                passFailText.textContent = "😢 불합격입니다. 조금 더 노력해 보세요!";
+                passFailText.className = "fail-text";
             }
         }
 
-        // 7. 처음부터 다시 풀기
+        // 7. 새로운 모의고사 시작
         restartBtn.addEventListener('click', () => {
+            // 원형 UI 색상 초기화
             finalScore.style.borderColor = "var(--primary-color)";
             finalScore.style.color = "var(--primary-color)";
 
-            // 다시 풀 때는 문제 순서를 '새로' 무작위로 섞음
-            quizData = shuffleArray(quizData);
-            startQuiz();
+            // 다시 전체 원본 데이터에서 새로운 60문제를 추출하여 시작
+            startNewMockTest();
         });
 
         // 스크립트 로드 완료 시 즉시 실행
