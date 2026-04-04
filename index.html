@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>3D프린터운용기능사 실전 모의고사</title>
     <style>
-        /* CSS 변수 설정 */
+        /* --- CSS 변수 (라이트 모드 기본 설정) --- */
         :root {
             --primary-color: #4F46E5;
             --primary-hover: #4338CA;
@@ -15,10 +15,42 @@
             --text-main: #1F2937;
             --text-muted: #6B7280;
             --correct-color: #10B981;
+            --correct-text: #065F46;
             --correct-bg: #D1FAE5;
             --wrong-color: #EF4444;
+            --wrong-text: #991B1B;
             --wrong-bg: #FEE2E2;
             --border-color: #E5E7EB;
+            --explanation-bg: #F8FAFC;
+            --score-bg: #EEF2FF;
+            --choice-hover-bg: #EEF2FF;
+        }
+
+        /* --- CSS 변수 (다크 모드 설정) --- */
+        body.dark-mode {
+            --primary-color: #6366f1;
+            /* 눈이 편안한 약간 밝은 인디고 */
+            --primary-hover: #818cf8;
+            --bg-color: #121212;
+            /* 완전한 블랙이 아닌 다크 그레이 */
+            --card-bg: #1e1e1e;
+            /* 카드 배경색 */
+            --text-main: #e0e0e0;
+            /* 부드러운 밝은 회색 */
+            --text-muted: #a1a1aa;
+            --correct-color: #34d399;
+            /* 채도를 낮춘 파스텔톤 그린 */
+            --correct-text: #34d399;
+            --correct-bg: rgba(16, 185, 129, 0.15);
+            /* 반투명 배경 */
+            --wrong-color: #f87171;
+            /* 채도를 낮춘 파스텔톤 레드 */
+            --wrong-text: #f87171;
+            --wrong-bg: rgba(239, 68, 68, 0.15);
+            --border-color: #333333;
+            --explanation-bg: rgba(255, 255, 255, 0.05);
+            --score-bg: rgba(99, 102, 241, 0.1);
+            --choice-hover-bg: rgba(99, 102, 241, 0.1);
         }
 
         /* 기본 리셋 및 폰트 */
@@ -27,6 +59,20 @@
             margin: 0;
             padding: 0;
             font-family: 'Pretendard', 'Noto Sans KR', sans-serif;
+        }
+
+        /* 부드러운 전환 효과 적용 */
+        body,
+        .container,
+        .choice-btn,
+        .explanation-box,
+        .score-circle,
+        h1,
+        h2,
+        p,
+        span,
+        div {
+            transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
         }
 
         body {
@@ -39,15 +85,40 @@
             padding: 20px;
         }
 
+        /* --- 다크모드 토글 버튼 --- */
+        .theme-toggle-btn {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background-color: var(--card-bg);
+            color: var(--text-main);
+            border: 1px solid var(--border-color);
+            border-radius: 50%;
+            width: 48px;
+            height: 48px;
+            font-size: 1.5rem;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            z-index: 1000;
+        }
+
+        .theme-toggle-btn:hover {
+            transform: scale(1.05);
+        }
+
         /* 공통 컨테이너 */
         .container {
             width: 100%;
             max-width: 700px;
             background-color: var(--card-bg);
             border-radius: 16px;
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
             overflow: hidden;
-            transition: all 0.3s ease;
+            margin-top: 40px;
+            /* 토글 버튼 공간 확보 */
         }
 
         .screen {
@@ -96,11 +167,15 @@
             font-size: 1rem;
             font-weight: 600;
             cursor: pointer;
-            transition: background-color 0.2s;
+            transition: background-color 0.2s, transform 0.1s;
         }
 
         .btn:hover {
             background-color: var(--primary-hover);
+        }
+
+        .btn:active {
+            transform: scale(0.98);
         }
 
         .btn:disabled {
@@ -117,7 +192,7 @@
         .spinner {
             width: 50px;
             height: 50px;
-            border: 5px solid #EEF2FF;
+            border: 5px solid var(--score-bg);
             border-top: 5px solid var(--primary-color);
             border-radius: 50%;
             animation: spin 1s linear infinite;
@@ -188,7 +263,7 @@
             left: 0;
             right: 0;
             bottom: 0;
-            background-color: #ccc;
+            background-color: var(--border-color);
             transition: .4s;
             border-radius: 24px;
         }
@@ -223,37 +298,36 @@
         .choice-btn {
             width: 100%;
             padding: 16px;
-            background-color: white;
+            background-color: var(--card-bg);
             border: 2px solid var(--border-color);
             border-radius: 8px;
             text-align: left;
             font-size: 1rem;
             cursor: pointer;
-            transition: all 0.2s;
             color: var(--text-main);
         }
 
         .choice-btn:not(:disabled):hover {
             border-color: var(--primary-color);
-            background-color: #EEF2FF;
+            background-color: var(--choice-hover-bg);
         }
 
         .choice-btn.correct {
             border-color: var(--correct-color);
             background-color: var(--correct-bg);
-            color: #065F46;
+            color: var(--correct-text);
             font-weight: bold;
         }
 
         .choice-btn.wrong {
             border-color: var(--wrong-color);
             background-color: var(--wrong-bg);
-            color: #991B1B;
+            color: var(--wrong-text);
             text-decoration: line-through;
         }
 
         .explanation-box {
-            background-color: #F8FAFC;
+            background-color: var(--explanation-bg);
             border-left: 4px solid var(--primary-color);
             padding: 15px;
             border-radius: 4px;
@@ -278,7 +352,7 @@
             width: 180px;
             height: 180px;
             border-radius: 50%;
-            background: #EEF2FF;
+            background: var(--score-bg);
             display: flex;
             justify-content: center;
             align-items: center;
@@ -305,6 +379,18 @@
         }
 
         @media (max-width: 480px) {
+            .theme-toggle-btn {
+                top: 10px;
+                right: 10px;
+                width: 40px;
+                height: 40px;
+                font-size: 1.2rem;
+            }
+
+            .container {
+                margin-top: 50px;
+            }
+
             .screen {
                 padding: 25px 20px;
             }
@@ -332,6 +418,9 @@
 </head>
 
 <body>
+
+    <!-- 다크모드 토글 버튼 -->
+    <button id="themeToggle" class="theme-toggle-btn" title="다크 모드 전환">🌙</button>
 
     <div class="container">
 
@@ -399,14 +488,37 @@
     </div>
 
     <script>
-        // 상태 관리 변수
-        let allQuizData = [];       // JSON에서 불러온 전체 원본 데이터
-        let currentQuizData = [];   // 현재 모의고사 세션에 사용될 60문제
-        let currentIndex = 0;       // 현재 풀고 있는 문제 인덱스
-        let score = 0;              // 맞춘 문제 개수
-        let isAnswered = false;     // 현재 문제 답안 선택 여부
+        // --- 다크모드 관리 로직 ---
+        const themeToggleBtn = document.getElementById('themeToggle');
+        const body = document.body;
 
-        // DOM 요소 캐싱
+        // Local Storage에서 이전 테마 설정 불러오기
+        const savedTheme = localStorage.getItem('theme');
+        if (savedTheme === 'dark') {
+            body.classList.add('dark-mode');
+            themeToggleBtn.textContent = '☀️';
+        }
+
+        // 토글 버튼 클릭 이벤트
+        themeToggleBtn.addEventListener('click', () => {
+            body.classList.toggle('dark-mode');
+            const isDark = body.classList.contains('dark-mode');
+
+            // 아이콘 변경
+            themeToggleBtn.textContent = isDark ? '☀️' : '🌙';
+
+            // 브라우저에 테마 상태 저장
+            localStorage.setItem('theme', isDark ? 'dark' : 'light');
+        });
+
+
+        // --- 모의고사 핵심 로직 ---
+        let allQuizData = [];
+        let currentQuizData = [];
+        let currentIndex = 0;
+        let score = 0;
+        let isAnswered = false;
+
         const screenLoading = document.getElementById('screen-loading');
         const screenError = document.getElementById('screen-error');
         const screenQuiz = document.getElementById('screen-quiz');
@@ -426,7 +538,6 @@
         const resultText = document.getElementById('resultText');
         const restartBtn = document.getElementById('restartBtn');
 
-        // 배열 무작위 섞기 함수 (Fisher-Yates 알고리즘)
         function shuffleArray(array) {
             const arr = [...array];
             for (let i = arr.length - 1; i > 0; i--) {
@@ -436,13 +547,11 @@
             return arr;
         }
 
-        // 화면 전환 함수
         function switchScreen(screenElement) {
             document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
             screenElement.classList.add('active');
         }
 
-        // 1. 데이터 Fetch (최초 1회만 실행)
         async function initQuiz() {
             try {
                 const response = await fetch('data.json');
@@ -457,7 +566,6 @@
                     throw new Error("데이터 배열이 비어있거나 형식이 올바르지 않습니다.");
                 }
 
-                // 전체 데이터를 저장해두고, 새로운 모의고사 시작
                 allQuizData = data;
                 startNewMockTest();
 
@@ -467,9 +575,7 @@
             }
         }
 
-        // 2. 새로운 모의고사 세트 생성 및 시작
         function startNewMockTest() {
-            // 전체 데이터를 섞은 뒤, 최대 60개만 잘라내어 현재 세트로 지정
             const shuffledAll = shuffleArray(allQuizData);
             currentQuizData = shuffledAll.slice(0, 60);
 
@@ -480,22 +586,18 @@
             loadQuestion();
         }
 
-        // 3. 문제 로드 함수
         function loadQuestion() {
             isAnswered = false;
             actionArea.style.display = 'none';
 
-            // 해설 표시는 오직 토글 스위치 상태에만 동기화
             explanationBox.style.display = toggleExplanation.checked ? 'block' : 'none';
 
             const qData = currentQuizData[currentIndex];
 
-            // UI 텍스트 업데이트
             progressText.textContent = `문제 ${currentIndex + 1} / ${currentQuizData.length}`;
             questionText.textContent = qData.question;
             explanationText.textContent = qData.explanation;
 
-            // 보기 섞기 (정답 매핑 로직)
             const mappedChoices = qData.choices.map((text, idx) => ({
                 text: text,
                 isCorrect: (idx === qData.answer - 1)
@@ -503,21 +605,18 @@
 
             const shuffledChoices = shuffleArray(mappedChoices);
 
-            // 보기 버튼 렌더링
             choicesBox.innerHTML = '';
             shuffledChoices.forEach((choice, index) => {
                 const btn = document.createElement('button');
                 btn.className = 'choice-btn';
                 btn.textContent = `${index + 1}. ${choice.text}`;
 
-                // 채점을 위해 정답 여부 저장
                 btn.dataset.correct = choice.isCorrect;
 
                 btn.addEventListener('click', () => handleAnswer(btn));
                 choicesBox.appendChild(btn);
             });
 
-            // 마지막 문제면 버튼 텍스트 변경
             if (currentIndex === currentQuizData.length - 1) {
                 nextBtn.textContent = "결과 보기 📊";
             } else {
@@ -525,7 +624,6 @@
             }
         }
 
-        // 4. 정답 처리 로직
         function handleAnswer(selectedBtn) {
             if (isAnswered) return;
             isAnswered = true;
@@ -537,10 +635,9 @@
 
             if (isCorrect) {
                 selectedBtn.classList.add('correct');
-                score++; // 정답 카운트 누적
+                score++;
             } else {
                 selectedBtn.classList.add('wrong');
-                // 오답 시 정답인 버튼 하이라이트
                 allBtns.forEach(btn => {
                     if (btn.dataset.correct === 'true') {
                         btn.classList.add('correct');
@@ -551,14 +648,12 @@
             actionArea.style.display = 'block';
         }
 
-        // 해설 토글 스위치 이벤트 리스너
         toggleExplanation.addEventListener('change', (e) => {
             if (screenQuiz.classList.contains('active')) {
                 explanationBox.style.display = e.target.checked ? 'block' : 'none';
             }
         });
 
-        // 5. 다음 문제 이동
         nextBtn.addEventListener('click', () => {
             if (currentIndex < currentQuizData.length - 1) {
                 currentIndex++;
@@ -568,20 +663,15 @@
             }
         });
 
-        // 6. 결과 화면 표시 및 합격 여부 판정
         function showResult() {
             switchScreen(screenResult);
 
             const totalQuestions = currentQuizData.length;
-            // 합격 기준: 60문제 기준 36개 (60% 이상). 
-            // 만약 데이터가 60개 미만일 경우를 대비해 총 문제수의 60% 올림값을 기준으로 설정.
             const passThreshold = Math.ceil(totalQuestions * 0.6);
 
-            // 원형 UI에 점수 표시
             finalScore.textContent = `${score} / ${totalQuestions}`;
             resultText.textContent = `총 ${totalQuestions}문제 중 ${score}문제를 맞히셨습니다. (합격 기준: ${passThreshold}개 이상)`;
 
-            // 판정 로직
             if (score >= passThreshold) {
                 finalScore.style.borderColor = "var(--correct-color)";
                 finalScore.style.color = "var(--correct-color)";
@@ -597,13 +687,10 @@
             }
         }
 
-        // 7. 새로운 모의고사 시작
         restartBtn.addEventListener('click', () => {
-            // 원형 UI 색상 초기화
             finalScore.style.borderColor = "var(--primary-color)";
             finalScore.style.color = "var(--primary-color)";
 
-            // 다시 전체 원본 데이터에서 새로운 60문제를 추출하여 시작
             startNewMockTest();
         });
 
